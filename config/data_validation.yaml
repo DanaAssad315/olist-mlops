@@ -1,0 +1,28 @@
+validation:
+  max_missing_rate: 0.05
+
+  required_columns:
+    - order_purchase_timestamp
+    - item_count
+    - total_price
+    - total_freight
+    - payment_total
+    - unique_products
+    - unique_sellers
+    - payment_count
+
+  numeric_constraints:
+    item_count:
+      min: 1
+    total_price:
+      min: 0
+    total_freight:
+      min: 0
+    payment_total:
+      min: 0
+    unique_products:
+      min: 1
+    unique_sellers:
+      min: 1
+    payment_count:
+      min: 1

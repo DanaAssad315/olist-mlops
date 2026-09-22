@@ -53,3 +53,9 @@ data/processed/
 # DVC-managed artifacts
 artifacts/*.csv
 artifacts/*.joblib
+
+# Great Expectations runtime files
+great_expectations/uncommitted/
+great_expectations/checkpoints/
+great_expectations/validation_results/
+great_expectations/data_docs/

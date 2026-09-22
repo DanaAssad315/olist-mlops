@@ -1,0 +1,179 @@
+{
+  "expectations": [
+    {
+      "id": "20328691-5d60-40ea-b1bc-a22fd957b95b",
+      "kwargs": {
+        "column_set": [
+          "order_purchase_timestamp",
+          "item_count",
+          "total_price",
+          "total_freight",
+          "payment_total",
+          "unique_products",
+          "unique_sellers",
+          "payment_count"
+        ],
+        "exact_match": false
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_table_columns_to_match_set"
+    },
+    {
+      "id": "66b3369c-148b-464d-8876-6eedd3500e7a",
+      "kwargs": {
+        "column": "order_purchase_timestamp",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "b8fc6784-823c-451b-ab09-44c3c7920068",
+      "kwargs": {
+        "column": "item_count",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "70f1a898-9c39-4ee1-95e8-0f0f1835024d",
+      "kwargs": {
+        "column": "total_price",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "d28449a5-37f1-42e5-9c38-6e68e1a76cca",
+      "kwargs": {
+        "column": "total_freight",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "37989e1d-583f-456e-ac61-d02e6913f45d",
+      "kwargs": {
+        "column": "payment_total",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "24eabcfd-d2eb-41a5-8036-fd0d5cc4298b",
+      "kwargs": {
+        "column": "unique_products",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "c09b92a6-65de-4ba5-a94f-505711a46fa5",
+      "kwargs": {
+        "column": "unique_sellers",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "59ed9ee0-bf42-47c5-9758-5f02179dc197",
+      "kwargs": {
+        "column": "payment_count",
+        "mostly": 0.95
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_not_be_null"
+    },
+    {
+      "id": "28b53328-03ae-4e78-b6b7-f870e5fa1277",
+      "kwargs": {
+        "column": "item_count",
+        "min_value": 1.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "c5853bbc-c396-4e2a-b5c2-30ccfc476523",
+      "kwargs": {
+        "column": "total_price",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "89efc07c-2f5d-4c83-b2fa-b79b0164d23e",
+      "kwargs": {
+        "column": "total_freight",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "0f5e4723-7fd4-4daf-8301-6b100f30a6d8",
+      "kwargs": {
+        "column": "payment_total",
+        "min_value": 0.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "9fa25188-a900-4196-9ffc-93aab56bd9af",
+      "kwargs": {
+        "column": "unique_products",
+        "min_value": 1.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "d1184585-f8f2-4c05-8ba0-776bde2571c6",
+      "kwargs": {
+        "column": "unique_sellers",
+        "min_value": 1.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    },
+    {
+      "id": "2e4ef0cc-fde2-4984-9ff9-ea79853ab408",
+      "kwargs": {
+        "column": "payment_count",
+        "min_value": 1.0
+      },
+      "meta": {},
+      "severity": "critical",
+      "type": "expect_column_values_to_be_between"
+    }
+  ],
+  "id": "d18051e1-9c26-413a-9dd1-03db8d7d9cd6",
+  "meta": {
+    "great_expectations_version": "1.23.1"
+  },
+  "name": "olist_prediction_input_suite",
+  "notes": null
+}
