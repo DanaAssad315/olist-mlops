@@ -11,6 +11,16 @@ validation:
     - unique_sellers
     - payment_count
 
+  column_types:
+    order_purchase_timestamp: datetime
+    item_count: numeric
+    total_price: numeric
+    total_freight: numeric
+    payment_total: numeric
+    unique_products: numeric
+    unique_sellers: numeric
+    payment_count: numeric
+
   numeric_constraints:
     item_count:
       min: 1
@@ -26,3 +36,5 @@ validation:
       min: 1
     payment_count:
       min: 1
+
+  allowed_categories: {}

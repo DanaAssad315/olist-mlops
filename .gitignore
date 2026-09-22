@@ -54,7 +54,7 @@ data/processed/
 artifacts/*.csv
 artifacts/*.joblib
 
-# Great Expectations runtime files
+# Great Expectations runtime outputs
 great_expectations/uncommitted/
 great_expectations/checkpoints/
 great_expectations/validation_results/
