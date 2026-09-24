@@ -1,4 +1,8 @@
 [core]
-    remote = local_storage
+    remote = dagshub
 ['remote "local_storage"']
     url = ../../dvc-storage
+['remote "gdrive_remote"']
+    url = gdrive://1kom5OUq725GzZgxqumSJS4QfNxDGiNxU/olist-mlops
+['remote "dagshub"']
+    url = https://dagshub.com/DanaAssad315/olist-mlops.dvc

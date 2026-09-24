@@ -1,137 +1,103 @@
 import logging
 import time
 
-import joblib
+import mlflow
+import mlflow.sklearn
 import pandas as pd
 
-from src.config import PROJECT_ROOT, config
-from src.preprocessing import load_preprocessor, preprocess_input
-from src.validation import validate_input
+from src.config import config
 from src.data_validation import validate_dataframe
+from src.logging_config import setup_logging
+from src.preprocessing import preprocess_input
+from src.validation import validate_input
+
 
 logger = logging.getLogger(__name__)
 
 
 def load_model():
-    """
-    Load the trained model saved during model development.
-    """
+    """Load the production model from the MLflow Model Registry."""
+    mlflow.set_tracking_uri(config["mlflow"]["tracking_uri"])
 
-    model_path = (
-        PROJECT_ROOT
-        / config["paths"]["model"]
-    )
+    model_name = config["mlflow"]["registered_model_name"]
+    model_alias = config["mlflow"]["model_alias"]
+
+    model_uri = f"models:/{model_name}@{model_alias}"
+
+    logger.info("Loading model from MLflow: %s", model_uri)
+
+    model = mlflow.sklearn.load_model(model_uri)
 
     logger.info(
-        "Loading model from %s",
-        model_path
+        "Model loaded successfully from MLflow: %s",
+        model_uri,
     )
-
-    try:
-        model = joblib.load(model_path)
-
-    except Exception:
-        logger.exception(
-            "Failed to load model from %s",
-            model_path
-        )
-        raise
-
-    logger.info("Model loaded successfully.")
 
     return model
 
 
-def predict(df: pd.DataFrame):
-    """
-    Generate predictions for new order data.
-
-    The saved preprocessor is used to transform the input,
-    and the saved model is used for prediction.
-
-    No fitting or retraining is performed.
-
-    Logs include:
-    - Input summary
-    - Model version
-    - Prediction output summary
-    - Prediction duration
-    """
-
+def predict(df: pd.DataFrame) -> pd.DataFrame:
+    """Validate input, preprocess it, and generate predictions."""
     start_time = time.perf_counter()
 
-    logger.info(
-        "Starting prediction request. Input rows: %d | Input columns: %d",
-        len(df),
-        len(df.columns) if isinstance(df, pd.DataFrame) else 0
-    )
-
-    # Validate the input before loading the model or preprocessing.
-    validate_input(df)
-    validate_dataframe(df)
-    
     try:
-        model_version = config["project"]["model_version"]
-
         logger.info(
-            "Using model version: %s",
-            model_version
+            "Prediction request received: rows=%d, columns=%d",
+            len(df),
+            len(df.columns),
         )
 
-        # Load the saved preprocessing pipeline.
-        preprocessor = load_preprocessor()
+        # Basic input validation
+        validate_input(df)
 
-        # Load the saved trained model.
+        # Great Expectations validation
+        validate_dataframe(df)
+
+        # Load model from MLflow Registry
         model = load_model()
 
-        # Apply the same feature engineering and preprocessing
-        # used during model development.
-        processed_features = preprocess_input(
-            df,
-            preprocessor=preprocessor
-        )
+        # Preprocess without fitting
+        X = preprocess_input(df)
 
-        # Probability of the order being late.
-        probability = model.predict_proba(
-            processed_features
-        )[:, 1]
+        # Generate probabilities
+        probabilities = model.predict_proba(X)[:, 1]
 
-        # Use the threshold selected during model evaluation.
         threshold = config["prediction"]["threshold"]
 
-        prediction = (
-            probability >= threshold
-        ).astype(int)
+        predictions = (probabilities >= threshold).astype(int)
+
+        result = pd.DataFrame(
+            {
+                "late_probability": probabilities,
+                "prediction": predictions,
+            }
+        )
+
+        duration = time.perf_counter() - start_time
+
+        logger.info(
+            "Prediction completed: rows=%d, threshold=%.2f, "
+            "predicted_late=%d, duration=%.4fs, model=%s@%s",
+            len(df),
+            threshold,
+            int(predictions.sum()),
+            duration,
+            config["mlflow"]["registered_model_name"],
+            config["mlflow"]["model_alias"],
+        )
+
+        return result
 
     except Exception:
+        duration = time.perf_counter() - start_time
+
         logger.exception(
-            "Prediction failed."
+            "Prediction failed after %.4f seconds.",
+            duration,
         )
+
         raise
 
-    duration = time.perf_counter() - start_time
 
-    result = pd.DataFrame({
-        "late_probability": probability,
-        "prediction": prediction
-    })
-
-    logger.info(
-        "Prediction output: %d rows | Late predictions: %d | "
-        "Threshold: %.2f | Model version: %s",
-        len(result),
-        int(prediction.sum()),
-        threshold,
-        model_version
-    )
-
-    logger.info(
-        "Prediction duration: %.4f seconds",
-        duration
-    )
-
-    logger.info(
-        "Prediction request completed successfully."
-    )
-
-    return result
+if __name__ == "__main__":
+    setup_logging()

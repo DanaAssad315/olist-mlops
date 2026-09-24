@@ -1,0 +1,30 @@
+project:
+  name: "olist-mlops"
+  model_version: "1.0"
+
+paths:
+  model: "artifacts/final_model.joblib"
+  preprocessor: "artifacts/preprocessor.joblib"
+  feature_names: "artifacts/feature_names.csv"
+
+prediction:
+  threshold: 0.15
+
+logging:
+  level: "INFO"
+  file: "logs/app.log"
+
+mlflow:
+  tracking_uri: "http://localhost:5000"
+  experiment_name: "olist-delivery-prediction"
+  registered_model_name: "olist-delivery-random-forest"
+  model_alias: "champion"
+  serving_stage: "production"
+  run_id: "9de7dff5b10645aa85d1204960889576"
+
+monitoring:
+  prediction_log_file: "logs/predictions.jsonl"
+  prediction_rate_baseline: 0.1343
+  drift_alert_threshold: 0.05
+  latency_alert_seconds: 2.0
+  error_rate_alert_threshold: 0.05

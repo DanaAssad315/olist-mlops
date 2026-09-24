@@ -1,0 +1,2 @@
+order_purchase_timestamp,customer_zip_code_prefix,customer_state,item_count,total_price,total_freight,unique_products,unique_sellers,payment_total,payment_count
+2018-01-01 10:00:00,14409,SP,1,100,20,1,1,120,1

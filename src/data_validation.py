@@ -67,9 +67,7 @@ def _build_expectations(suite, config):
     # ---------------------------------------------------------
     # 4. Allowed categories
     # ---------------------------------------------------------
-    for column, allowed_values in config.get(
-        "allowed_categories", {}
-    ).items():
+    for column, allowed_values in config.get("allowed_categories", {}).items():
         suite.add_expectation(
             gxe.ExpectColumnValuesToBeInSet(
                 column=column,
@@ -123,37 +121,23 @@ def _get_batch(context, df):
     """Create a GX batch from an in-memory pandas DataFrame."""
 
     try:
-        data_source = context.data_sources.get(
-            DATA_SOURCE_NAME
-        )
+        data_source = context.data_sources.get(DATA_SOURCE_NAME)
     except Exception:
-        data_source = context.data_sources.add_pandas(
-            name=DATA_SOURCE_NAME
-        )
+        data_source = context.data_sources.add_pandas(name=DATA_SOURCE_NAME)
 
     try:
-        data_asset = data_source.get_asset(
-            ASSET_NAME
-        )
+        data_asset = data_source.get_asset(ASSET_NAME)
     except Exception:
-        data_asset = data_source.add_dataframe_asset(
-            name=ASSET_NAME
-        )
+        data_asset = data_source.add_dataframe_asset(name=ASSET_NAME)
 
     try:
-        batch_definition = data_asset.get_batch_definition(
+        batch_definition = data_asset.get_batch_definition(BATCH_DEFINITION_NAME)
+    except Exception:
+        batch_definition = data_asset.add_batch_definition_whole_dataframe(
             BATCH_DEFINITION_NAME
         )
-    except Exception:
-        batch_definition = (
-            data_asset.add_batch_definition_whole_dataframe(
-                BATCH_DEFINITION_NAME
-            )
-        )
 
-    return batch_definition.get_batch(
-        batch_parameters={"dataframe": df}
-    )
+    return batch_definition.get_batch(batch_parameters={"dataframe": df})
 
 
 def _validate_column_types(df, config):
@@ -167,7 +151,6 @@ def _validate_column_types(df, config):
     failures = []
 
     for column, expected_type in config["column_types"].items():
-
         if column not in df.columns:
             continue
 
@@ -178,21 +161,14 @@ def _validate_column_types(df, config):
                 try:
                     pd.to_datetime(series, errors="raise")
                 except (TypeError, ValueError):
-                    failures.append(
-                        f"{column}: expected datetime-compatible values"
-                    )
+                    failures.append(f"{column}: expected datetime-compatible values")
 
         elif expected_type == "numeric":
             if not pd.api.types.is_numeric_dtype(series):
-                failures.append(
-                    f"{column}: expected numeric values"
-                )
+                failures.append(f"{column}: expected numeric values")
 
     if failures:
-        raise ValueError(
-            "Column type validation failed: "
-            + "; ".join(failures)
-        )
+        raise ValueError("Column type validation failed: " + "; ".join(failures))
 
 
 def validate_dataframe(df: pd.DataFrame) -> bool:
@@ -211,14 +187,10 @@ def validate_dataframe(df: pd.DataFrame) -> bool:
     """
 
     if not isinstance(df, pd.DataFrame):
-        raise TypeError(
-            "Input must be a pandas DataFrame."
-        )
+        raise TypeError("Input must be a pandas DataFrame.")
 
     if df.empty:
-        raise ValueError(
-            "Input data cannot be empty."
-        )
+        raise ValueError("Input data cannot be empty.")
 
     config = load_validation_config()["validation"]
 
@@ -226,15 +198,11 @@ def validate_dataframe(df: pd.DataFrame) -> bool:
     # Explicit schema/type checks
     # ---------------------------------------------------------
     missing_columns = [
-        column
-        for column in config["required_columns"]
-        if column not in df.columns
+        column for column in config["required_columns"] if column not in df.columns
     ]
 
     if missing_columns:
-        raise ValueError(
-            f"Missing required columns: {missing_columns}"
-        )
+        raise ValueError(f"Missing required columns: {missing_columns}")
 
     _validate_column_types(df, config)
 
@@ -257,9 +225,7 @@ def validate_dataframe(df: pd.DataFrame) -> bool:
 
     for result in validation_result["results"]:
         if not result["success"]:
-            failed_expectations.append(
-                result["expectation_config"]["type"]
-            )
+            failed_expectations.append(result["expectation_config"]["type"])
 
     logger.error(
         "Great Expectations validation failed: %s",
@@ -267,25 +233,17 @@ def validate_dataframe(df: pd.DataFrame) -> bool:
     )
 
     raise ValueError(
-        "Data validation failed. "
-        f"Failed expectations: {failed_expectations}"
+        f"Data validation failed. Failed expectations: {failed_expectations}"
     )
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format=(
-            "%(asctime)s | %(levelname)s | "
-            "%(name)s | %(message)s"
-        ),
+        format=("%(asctime)s | %(levelname)s | %(name)s | %(message)s"),
     )
 
-    test_path = (
-        PROJECT_ROOT
-        / "artifacts"
-        / "test.csv"
-    )
+    test_path = PROJECT_ROOT / "artifacts" / "test.csv"
 
     test_df = pd.read_csv(test_path)
 
@@ -297,6 +255,4 @@ if __name__ == "__main__":
 
     validate_dataframe(test_df)
 
-    print(
-        "Great Expectations validation passed."
-    )
+    print("Great Expectations validation passed.")

@@ -1,0 +1,21 @@
+EDA Findings Summary
+
+1. The training dataset contains 67,533 orders and the target variable is imbalanced, with most orders being on time and a smaller portion being late.
+
+2. Missing values are very limited and mainly occur in order approval, carrier delivery date, and aggregated payment features.
+
+3. Numerical features such as price, freight, payment amount, and item count are strongly right-skewed and contain statistical outliers. These values were not removed automatically because they may represent valid orders.
+
+4. Customer city has high cardinality and many rare categories, while customer state has only 27 categories and is more suitable as a categorical feature.
+
+5. Numerical features show weak linear correlations with the late-delivery label, so correlation alone was not used for feature selection.
+
+6. Late-delivery rates vary across customer states, suggesting that geographic information may be useful for prediction.
+
+7. Delivery duration varies considerably, and late-delivery rates differ across purchase months, with higher rates in February, March, and November.
+
+8. Orders placed on holidays had a slightly lower late-delivery rate than orders placed on non-holidays. However, holiday orders are much fewer, so this difference should be interpreted cautiously.
+
+9. Temporal, geographic, order-value, item-count, payment, and categorical features may be useful candidates for feature engineering.
+
+These findings will guide feature selection and preprocessing in the next notebook.
