@@ -15,12 +15,12 @@ olist-mlops/
 ├── data/
 ├── database/
 ├── ingestion/
-├── models/
 ├── notebooks/
 ├── scripts/
 ├── src/
 ├── tests/
 ├── .github/
+├── great_expectations/
 ├── Dockerfile
 ├── Dockerfile.mlflow
 ├── docker-compose.yml
@@ -43,7 +43,7 @@ olist-mlops/
 ### 1. Clone the repository
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/DanaAssad315/olist-mlops.git
 cd olist-mlops
 ```
 
@@ -65,43 +65,65 @@ pip install -r requirements-dev.txt
 
 ### 4. Configure environment variables
 
-Create a `.env` file based on `.env.example`.
+Create a local `.env` file from the provided example:
 
 ```powershell
 copy .env.example .env
 ```
 
-Environment variables are used for configuration that should not be hardcoded, such as service credentials and connection settings.
+Update the PostgreSQL password if needed.
+
+Environment variables are used for local service configuration and are not committed to the repository.
 
 ## Data and DVC
 
-Large data and ML artifacts are tracked using DVC.
+Large data and machine learning artifacts are tracked using DVC.
 
 The project uses a DVC remote hosted on DAGsHub for portable storage of tracked data and artifacts.
 
-After cloning the repository, configure DVC credentials locally and pull the tracked data:
+The repository contains the DVC remote URL, while authentication credentials are stored locally and are not committed to Git.
+
+Before pulling the tracked artifacts, configure your DAGsHub DVC credentials locally.
+
+Then run:
 
 ```powershell
 dvc pull
 ```
 
-DVC credentials are stored locally and are not committed to the repository.
+After a successful pull, the DVC-tracked artifacts will be restored under:
+
+```text
+artifacts/
+```
+
+You can verify the DVC state with:
+
+```powershell
+dvc status
+```
 
 ## Database
 
-PostgreSQL is used for the Olist dataset.
+PostgreSQL 16 is used for the Olist dataset.
 
-Start the database with:
+To start only the PostgreSQL service:
 
 ```powershell
-docker compose up -d
+docker compose up -d postgres
+```
+
+To stop the PostgreSQL service:
+
+```powershell
+docker compose stop postgres
 ```
 
 The database configuration is defined through Docker Compose and environment variables.
 
 ## Machine Learning Workflow
 
-The ML development workflow is organized into notebooks:
+The ML development workflow is organized into the following notebooks:
 
 ```text
 01_read_join
@@ -121,9 +143,9 @@ The workflow includes:
 5. Feature engineering and preprocessing.
 6. Model training and evaluation.
 
-The final model is a Random Forest classifier.
+The final trained model is a Random Forest classifier.
 
-The production inference workflow uses the saved preprocessing pipeline and trained model. **Inference does not retrain the model.**
+The production inference workflow uses the saved preprocessing pipeline and the registered trained model. Inference does not retrain the model.
 
 ## Model Artifacts
 
@@ -138,17 +160,20 @@ Examples include:
 * `final_model.joblib`
 * `preprocessor.joblib`
 * `feature_names.csv`
-* processed feature arrays
-* evaluation results
-* EDA outputs
+* `ml_table.csv`
+* `labeled_table.csv`
+* `train.csv`
+* `validation.csv`
+* `test.csv`
+* `final_results.csv`
 
-These artifacts are versioned with DVC where appropriate.
+These artifacts are versioned using DVC.
 
 ## Data Validation
 
-The project includes data validation checks to detect invalid or unexpected input data before inference.
+The project includes input and data quality validation to detect invalid or unexpected data before prediction.
 
-Validation is implemented in the `src/` modules and covered by automated tests.
+Validation functionality is implemented in the `src/` modules and covered by automated tests.
 
 Great Expectations is also used as part of the data quality and validation workflow.
 
@@ -156,56 +181,123 @@ Great Expectations is also used as part of the data quality and validation workf
 
 MLflow is used to track experiments, parameters, metrics, and model information.
 
-The project also uses the MLflow Model Registry to manage the production model version.
+The project also uses the MLflow Model Registry to manage the model used for production inference.
 
-The inference service loads the required model from the registry rather than retraining a model during application startup.
+The inference service loads the model from the MLflow Model Registry using the configured model name and `champion` alias rather than loading or retraining a model during application startup.
 
 ## API
 
 The project provides a FastAPI application for production-oriented inference.
 
-The API is responsible for:
+The API provides endpoints for:
 
-* Receiving prediction requests.
-* Validating input data.
-* Loading the registered model and preprocessing pipeline.
-* Generating predictions.
-* Returning prediction results.
-* Logging prediction information.
+* Health checks
+* Model information
+* Single prediction
+* Batch prediction
+* Prometheus metrics
+* Prediction monitoring
 
-The application can be started through Docker Compose or directly from the project environment.
+The main endpoints are:
+
+```text
+GET  /health
+GET  /model-info
+POST /predict
+POST /predict/batch
+GET  /metrics
+GET  /monitoring
+```
+
+### Run the API directly
+
+Make sure the MLflow server is running and the required registered model is available.
+
+Then run:
+
+```powershell
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+The API will be available at:
+
+```text
+http://localhost:8000
+```
+
+FastAPI documentation is available at:
+
+```text
+http://localhost:8000/docs
+```
 
 ## Testing
 
-The project includes automated tests covering configuration, preprocessing, validation, data validation, prediction, monitoring, and API behavior.
+The project includes automated tests covering configuration, preprocessing, validation, prediction, monitoring, and API behavior.
 
-Run the test suite with:
+Run the complete test suite with:
 
 ```powershell
 pytest
 ```
 
+For a more detailed output:
+
+```powershell
+pytest -v
+```
+
 ## Docker
 
-The application and supporting services can be run using Docker.
+The project includes Docker support for PostgreSQL, MLflow, and the FastAPI application.
 
-Start the services with:
+To build and start the complete stack:
 
 ```powershell
 docker compose up --build
 ```
 
-To stop them:
+To run the stack in detached mode:
+
+```powershell
+docker compose up --build -d
+```
+
+To stop the services:
 
 ```powershell
 docker compose down
 ```
 
+The services use the following ports:
+
+```text
+PostgreSQL: 5432
+MLflow:     5000
+FastAPI:    8000
+```
+
+## MLflow
+
+The MLflow tracking server is included as a Docker service.
+
+When the Docker stack is running, MLflow is available at:
+
+```text
+http://localhost:5000
+```
+
+The MLflow service stores its tracking database and artifacts in a Docker volume.
+
+The production API uses the configured MLflow tracking URI and loads the registered model through the configured model alias.
+
 ## Logging and Monitoring
 
 The application includes structured logging for important application and inference events.
 
-Prediction logs are used to support basic production monitoring and allow prediction behavior to be reviewed over time.
+Prediction logs are stored as JSON Lines and are used to support basic production monitoring.
+
+Monitoring functionality includes prediction distribution, latency, error-rate, and prediction-drift checks.
 
 Monitoring functionality is implemented under:
 
@@ -213,39 +305,66 @@ Monitoring functionality is implemented under:
 src/monitoring.py
 ```
 
+The API also exposes Prometheus-compatible metrics through:
+
+```text
+GET /metrics
+```
+
 ## CI/CD
 
-GitHub Actions is used to automate project checks.
+GitHub Actions is used to automate project quality checks.
 
-The CI workflow runs automated validation and testing to help ensure that changes do not break the project.
+The CI workflow includes:
 
-Pre-commit hooks are also configured for development-time checks.
+* Ruff linting
+* Black formatting checks
+* Automated tests
+* Docker image build
+
+The workflow is triggered on pushes and pull requests to the configured `main` and `master` branches.
+
+A Docker Hub push job is also configured for pushes to the `main` branch when the required Docker Hub secrets are available.
+
+Pre-commit hooks are configured for development-time code quality checks.
 
 ## Reproducibility
 
-The project is designed to reproduce the ML workflow from data preparation to production inference.
+The project is designed to support reproducibility from data preparation to production inference.
 
 The main components supporting reproducibility are:
 
 * Git for source-code versioning.
 * DVC for data and ML artifact versioning.
-* MLflow for experiment and model tracking.
+* MLflow for experiment tracking and model registry.
 * Configuration files and environment variables.
 * Docker for service/container reproducibility.
 * Automated tests and CI checks.
 
+A clean clone can restore the DVC-tracked artifacts using:
+
+```powershell
+dvc pull
+```
+
+and verify the project state using:
+
+```powershell
+dvc status
+```
+
 ## Production Inference Workflow
 
-The production workflow follows this general sequence:
+The production workflow follows this sequence:
 
 ```text
 Input Data
     ↓
-Data Validation
+Input/Data Validation
     ↓
 Preprocessing
     ↓
-Registered Model
+MLflow Registered Model
     ↓
 Prediction
     ↓
@@ -254,7 +373,7 @@ Prediction Logging
 Monitoring
 ```
 
-The production application uses the existing trained model and preprocessing objects. Model training is kept separate from inference.
+The production application uses the existing preprocessing objects and the registered trained model. Model training is kept separate from inference.
 
 ## Development
 
@@ -265,13 +384,13 @@ pip install -r requirements.txt
 pip install -r requirements-dev.txt
 ```
 
-Run tests with:
+Run tests:
 
 ```powershell
 pytest
 ```
 
-Run pre-commit checks with:
+Run pre-commit checks:
 
 ```powershell
 pre-commit run --all-files
