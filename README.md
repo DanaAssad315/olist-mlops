@@ -123,7 +123,7 @@ Data and pipelines are up to date.
 
 > DVC credentials are stored locally in `.dvc/config.local` and are not committed to the repository.
 
-### 6. Start the complete application
+### 6. Start the application services
 
 Build and start PostgreSQL, MLflow, and FastAPI:
 
@@ -159,11 +159,123 @@ http://localhost:5000
 
 ---
 
+## MLflow Model Registry Initialization
+
+The MLflow tracking server and model registry are runtime components.
+
+When the project is started on a completely new environment, the MLflow backend may not contain the registered model yet. The saved model and preprocessing artifacts are versioned separately with DVC.
+
+Initialize the MLflow experiment and register the final model with:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+This step:
+
+* logs the final model run to MLflow
+* registers the production model
+* creates a model version
+* assigns the configured serving alias
+* stores model-version metadata
+* makes the model available to the FastAPI inference service
+
+Verify the registered model:
+
+```powershell
+curl.exe http://localhost:8000/health
+```
+
+Expected:
+
+```json
+{
+  "status": "ok",
+  "model_status": "available"
+}
+```
+
+Then:
+
+```powershell
+curl.exe http://localhost:8000/model-info
+```
+
+Example:
+
+```json
+{
+  "model_name": "olist-delivery-random-forest",
+  "model_version": "1",
+  "model_alias": "champion",
+  "serving_stage": "production"
+}
+```
+
+> The MLflow Registry is runtime state and is not stored in Git or DVC. Therefore, a fresh MLflow backend must be initialized from the versioned project artifacts.
+
+---
+
+## MLflow Troubleshooting
+
+If `/health` reports:
+
+```json
+{
+  "status": "degraded",
+  "model_status": "unavailable"
+}
+```
+
+first initialize or refresh the model registration:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+Then verify:
+
+```powershell
+curl.exe http://localhost:8000/health
+curl.exe http://localhost:8000/model-info
+```
+
+### Stale or invalid MLflow model version
+
+If `/predict` returns an error similar to:
+
+```text
+RESOURCE_DOES_NOT_EXIST:
+Run with id=<run_id> not found
+```
+
+the MLflow Registry may contain a model version whose artifact points to a run that is no longer available in the current MLflow backend.
+
+This can happen when using a fresh or reset MLflow backend together with previously persisted registry metadata.
+
+Re-register the final model:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+Then verify the newly registered model:
+
+```powershell
+curl.exe http://localhost:8000/model-info
+```
+
+After registration, retry the prediction request.
+
+> The source model and preprocessing artifacts are preserved through DVC. Re-running `src.mlflow_tracking` recreates the MLflow runtime registration from those versioned artifacts.
+
+---
+
 ## Running the API Locally
 
 The API can also be started directly from the Python environment for development.
 
-Make sure the required services are running first, then:
+Make sure PostgreSQL and MLflow are running first:
 
 ```powershell
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -181,49 +293,55 @@ Docker Compose is recommended when running the complete application because the 
 
 ## API Endpoints
 
-| Method | Route            | Description                                      |
-| ------ | ---------------- | ------------------------------------------------ |
-| GET    | `/health`        | Health check                                     |
-| GET    | `/model-info`    | Returns information about the loaded model       |
-| POST   | `/predict`       | Predicts whether an order will be delivered late |
-| POST   | `/predict/batch` | Performs batch predictions                       |
-| GET    | `/metrics`       | Returns application metrics                      |
-| GET    | `/monitoring`    | Returns monitoring information                   |
+| Method | Route            | Description                                           |
+| ------ | ---------------- | ----------------------------------------------------- |
+| GET    | `/health`        | Health check                                          |
+| GET    | `/model-info`    | Returns information about the loaded registered model |
+| POST   | `/predict`       | Predicts whether an order will be delivered late      |
+| POST   | `/predict/batch` | Performs batch predictions                            |
+| GET    | `/metrics`       | Returns application metrics                           |
+| GET    | `/monitoring`    | Returns monitoring information                        |
 
-### Example Request
+### Prediction Request
 
 The `/predict` endpoint accepts an order feature payload matching the production inference schema.
 
-Example:
+The current request schema contains:
 
 ```json
 {
-  "order_purchase_timestamp": "2018-01-01T10:00:00",
+  "order_purchase_timestamp": "2018-01-01 10:00:00",
+  "customer_zip_code_prefix": 14409,
   "customer_state": "SP",
-  "order_item_count": 1
+  "item_count": 1,
+  "total_price": 100.0,
+  "total_freight": 20.0,
+  "unique_products": 1,
+  "unique_sellers": 1,
+  "payment_total": 120.0,
+  "payment_count": 1
 }
 ```
 
-The exact required fields are defined by the FastAPI request schema in:
+The exact validation rules are defined by the FastAPI request schema in:
 
 ```text
 app/main.py
 ```
 
-### Example Response
+### Example PowerShell Request
 
-```json
-{
-  "prediction": 0,
-  "probability": 0.12
-}
+PowerShell users can send a prediction request with:
+
+```powershell
+Invoke-RestMethod `
+  -Uri "http://localhost:8000/predict" `
+  -Method POST `
+  -ContentType "application/json" `
+  -Body '{"order_purchase_timestamp":"2018-01-01 10:00:00","customer_zip_code_prefix":14409,"customer_state":"SP","item_count":1,"total_price":100.0,"total_freight":20.0,"unique_products":1,"unique_sellers":1,"payment_total":120.0,"payment_count":1}'
 ```
 
-Where:
-
-* `prediction = 0` → predicted on-time delivery
-* `prediction = 1` → predicted late delivery
-* `probability` → model probability for the late-delivery class
+A successful prediction returns the predicted class, probability, and model version used by the inference service.
 
 ---
 
@@ -295,17 +413,33 @@ MLflow is used to track experiments and manage the registered production model.
 
 The API loads the configured model from the MLflow Model Registry rather than retraining during inference.
 
+Registered model:
+
+```text
+olist-delivery-random-forest
+```
+
+Production serving alias:
+
+```text
+champion
+```
+
+The model version is exposed through the `/model-info` endpoint and used by the inference service.
+
 ---
 
 ## Data Validation
 
-Great Expectations is used to validate the data before it enters the ML workflow.
+Great Expectations is used to validate data quality before the data enters the ML workflow.
 
 Configuration is stored under:
 
 ```text
 great_expectations/
 ```
+
+Data validation helps detect invalid or unexpected data before it reaches downstream ML processing.
 
 ---
 
@@ -340,6 +474,8 @@ To pull the tracked data and artifacts:
 dvc pull
 ```
 
+The project uses DAGsHub as the configured DVC remote.
+
 ---
 
 ## MLflow
@@ -352,6 +488,7 @@ MLflow provides:
 * Model Registry
 * Model versioning
 * Model aliases
+* Model-version metadata
 
 The registered model is:
 
@@ -359,12 +496,18 @@ The registered model is:
 olist-delivery-random-forest
 ```
 
-The production model is referenced using the configured MLflow model alias.
+The production model is served using the configured MLflow model alias.
 
 MLflow UI:
 
 ```text
 http://localhost:5000
+```
+
+The registration workflow is implemented in:
+
+```text
+src/mlflow_tracking.py
 ```
 
 ---
@@ -384,6 +527,12 @@ pytest -v
 ```
 
 The test suite covers the main data, feature, model, and API functionality.
+
+The project test suite was verified with:
+
+```text
+36 passed
+```
 
 ---
 
@@ -425,9 +574,7 @@ docker compose down
 
 The application includes logging and prediction monitoring.
 
-The monitoring functionality is exposed through the API and implemented in the project source code.
-
-Available monitoring endpoints include:
+Available monitoring endpoints:
 
 ```text
 GET /metrics
@@ -435,6 +582,8 @@ GET /monitoring
 ```
 
 Prediction and application logs are used to support production monitoring and troubleshooting.
+
+The monitoring components are implemented in the application source code and expose operational information through the API.
 
 ---
 
@@ -489,7 +638,22 @@ The project uses:
 * **Pytest** — automated testing
 * **GitHub Actions** — CI/CD
 
-A new machine can reproduce the project by cloning the repository, configuring local DVC credentials, pulling the versioned artifacts, and starting the Docker Compose services.
+A new environment can reproduce the project by:
+
+1. Cloning the repository.
+2. Installing the required dependencies.
+3. Configuring local DVC credentials.
+4. Running `dvc pull`.
+5. Starting the Docker Compose services.
+6. Initializing the MLflow Model Registry with:
+
+   ```powershell
+   python -m src.mlflow_tracking
+   ```
+7. Verifying `/health` and `/model-info`.
+8. Sending a request to `/predict`.
+
+The source code and ML artifacts are versioned through Git and DVC. MLflow Registry state is initialized in the target environment from the versioned model artifacts.
 
 ---
 
