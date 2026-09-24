@@ -1,186 +1,273 @@
-# Olist MLOps — Delivery Delay Predictor
+# Olist MLOps — Late Delivery Prediction
 
-An end-to-end MLOps project for predicting whether an Olist order will be delivered late or on time.
+An end-to-end MLOps project for predicting whether an Olist order will be delivered late.
 
-The project covers the complete machine learning lifecycle, from data preparation and validation to model training, experiment tracking, model registry, production inference, API serving, testing, monitoring, and CI/CD.
-
-> **Status:** Complete MLOps pipeline with a trained Random Forest model, DVC data/artifact versioning, MLflow experiment tracking and model registry, FastAPI inference service, Docker Compose deployment, automated tests, monitoring, and CI/CD.
+The project covers the complete workflow from data ingestion and ML development to experiment tracking, model versioning, validation, testing, API serving, Docker deployment, CI/CD, and monitoring.
 
 ---
 
-## Project Structure
+## 1. Project Overview
+
+The system predicts whether an Olist order will be delivered late based on information available at prediction time.
+
+### Main components
+
+* PostgreSQL for data storage
+* Pandas / Scikit-learn for ML development
+* Random Forest for late-delivery prediction
+* DVC for dataset and artifact versioning
+* Great Expectations for data validation
+* MLflow for experiment tracking and model registry
+* FastAPI for model serving
+* Docker / Docker Compose for deployment
+* Pytest for automated testing
+* GitHub Actions for CI/CD
+* Pre-commit for code quality
+* Logging and prediction monitoring
+
+---
+
+## 2. Project Structure
 
 ```text
 olist-mlops/
-├── app/                         # FastAPI inference service
-├── artifacts/                   # DVC-tracked datasets and ML artifacts
+│
+├── app/
+│   └── ...
+│
+├── artifacts/
+│   ├── feature_names.csv
+│   ├── final_model.joblib
+│   ├── final_results.csv
+│   ├── labeled_table.csv
+│   ├── ml_table.csv
+│   ├── preprocessor.joblib
+│   ├── train.csv
+│   ├── validation.csv
+│   └── test.csv
+│
 ├── config/
-│   └── config.yaml              # Project and model configuration
-├── data/                        # Project data
-├── database/                    # Database-related files
-├── ingestion/                   # Data ingestion utilities
-├── notebooks/                   # End-to-end ML development workflow
-│   ├── 01_read_join
-│   ├── 02_create_labels
-│   ├── 03_split_data
-│   ├── 04_eda
-│   ├── 05_feature_engineering
-│   └── 06_train_evaluate
-├── scripts/                     # Utility and operational scripts
-├── src/                         # Reusable production modules
-├── tests/                       # Automated tests
-├── great_expectations/          # Data validation configuration
-├── .github/workflows/           # GitHub Actions CI/CD
-├── Dockerfile                   # FastAPI application image
-├── Dockerfile.mlflow            # MLflow service image
-├── docker-compose.yml           # PostgreSQL + MLflow + FastAPI
-├── requirements.txt             # Runtime dependencies
-├── requirements-dev.txt         # Development and testing dependencies
-├── .env.example                 # Environment variable template
-├── .pre-commit-config.yaml      # Pre-commit configuration
+│   └── config.yaml
+│
+├── database/
+│   └── ...
+│
+├── ingestion/
+│   └── ...
+│
+├── models/
+│   └── ...
+│
+├── notebooks/
+│   ├── 01_read_join.ipynb
+│   ├── 02_create_labels.ipynb
+│   ├── 03_split_data.ipynb
+│   ├── 04_eda.ipynb
+│   ├── 05_feature_engineering.ipynb
+│   └── 06_train_evaluate.ipynb
+│
+├── src/
+│   ├── config.py
+│   ├── inference.py
+│   ├── mlflow_tracking.py
+│   └── ...
+│
+├── tests/
+│   └── ...
+│
+├── .github/
+│   └── workflows/
+│
+├── .dvc/
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+├── Dockerfile
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## Prerequisites
+# 3. Prerequisites
 
-* Python 3.11
+Install the following before starting:
+
 * Git
+* Python 3.11+
 * Docker Desktop
+* Docker Compose
 * DVC
 
-Docker Desktop must be running before starting the services.
+Verify:
+
+```powershell
+git --version
+python --version
+docker --version
+docker compose version
+dvc --version
+```
 
 ---
 
-## Quickstart
-
-### 1. Clone the repository
+# 4. Clone the Repository
 
 ```powershell
 git clone https://github.com/DanaAssad315/olist-mlops.git
 cd olist-mlops
 ```
 
-### 2. Create and activate a virtual environment
+---
 
-**Windows (PowerShell):**
+# 5. Python Environment
+
+Create and activate a virtual environment:
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 ```
 
-### 3. Install dependencies
+Install dependencies:
 
 ```powershell
 pip install -r requirements.txt
-pip install -r requirements-dev.txt
 ```
 
-### 4. Configure environment variables
+---
 
-Create the local environment file:
+# 6. Environment Variables
+
+Create a local `.env` file based on `.env.example`.
 
 ```powershell
-copy .env.example .env
+Copy-Item .env.example .env
 ```
 
-Edit `.env` if needed.
+Fill in the required values according to the local environment.
 
-> `.env` is local-only and must not be committed to Git.
+Do not commit `.env` or any credentials.
 
-### 5. Configure DVC credentials
+---
 
-The project uses DAGsHub as the DVC remote.
+# 7. Download Versioned Data and Artifacts
 
-On a new machine, configure your DAGsHub credentials locally:
+The repository uses DVC to version datasets and ML artifacts.
 
-```powershell
-dvc remote modify dagshub --local auth basic
-dvc remote modify dagshub --local user <DAGSHUB_USERNAME>
-dvc remote modify dagshub --local password <DAGSHUB_TOKEN>
-```
-
-Then pull the versioned datasets and ML artifacts:
+Run:
 
 ```powershell
 dvc pull
 ```
 
-Verify the data state:
+The tracked artifacts include:
 
-```powershell
-dvc status
-```
+* processed datasets
+* train / validation / test splits
+* preprocessing object
+* feature names
+* trained model
+* evaluation results
 
-Expected:
+### DVC credentials
+
+The DVC remote is hosted on DAGsHub.
+
+Credentials are intentionally **not stored in Git**.
+
+If the remote requires authentication, configure DVC credentials locally before running `dvc pull`.
+
+For example, authenticate with DAGsHub using its supported authentication method.
+
+Never commit:
 
 ```text
-Data and pipelines are up to date.
+.dvc/config.local
 ```
 
-> DVC credentials are stored locally in `.dvc/config.local` and are not committed to the repository.
+or any token/password.
 
-### 6. Start the application services
+---
 
-Build and start PostgreSQL, MLflow, and FastAPI:
+# 8. Start the Services
+
+Start PostgreSQL, MLflow, and the API:
 
 ```powershell
 docker compose up --build -d
 ```
 
-Check the services:
+Check the containers:
 
 ```powershell
 docker compose ps
 ```
 
-The application uses:
-
-| Service    |   Port |
-| ---------- | -----: |
-| PostgreSQL | `5432` |
-| MLflow     | `5000` |
-| FastAPI    | `8000` |
-
-Open the API documentation:
+Expected services include:
 
 ```text
-http://localhost:8000/docs
+olist-postgres
+olist-mlflow
+olist-api
 ```
 
-Open MLflow:
+Default ports:
 
 ```text
-http://localhost:5000
+PostgreSQL : 5432
+MLflow      : 5000
+FastAPI     : 8000
 ```
 
 ---
 
-## MLflow Model Registry Initialization
+# 9. Initialize the MLflow Model Registry
 
-The MLflow tracking server and model registry are runtime components.
+A fresh environment may have an empty MLflow Model Registry.
 
-When the project is started on a completely new environment, the MLflow backend may not contain the registered model yet. The saved model and preprocessing artifacts are versioned separately with DVC.
+The trained model artifact is versioned with DVC, but the MLflow Registry itself is initialized separately.
 
-Initialize the MLflow experiment and register the final model with:
+Run:
 
 ```powershell
 python -m src.mlflow_tracking
 ```
 
-This step:
+This will:
 
-* logs the final model run to MLflow
-* registers the production model
-* creates a model version
-* assigns the configured serving alias
-* stores model-version metadata
-* makes the model available to the FastAPI inference service
+1. Configure the MLflow tracking server.
+2. Create the experiment if it does not exist.
+3. Log the final model and evaluation metrics.
+4. Register the model.
+5. Create/update the `champion` alias.
+6. Add model metadata and validation tags.
 
-Verify the registered model:
+The registered model name is:
+
+```text
+olist-delivery-random-forest
+```
+
+The serving alias is:
+
+```text
+champion
+```
+
+---
+
+# 10. Restart the API After Model Registration
+
+The API loads the serving model when the application starts.
+
+Therefore, after initializing or updating the MLflow Registry, restart the API so it loads the current `champion` model:
+
+```powershell
+docker compose restart api
+```
+
+Then verify that the API is running:
 
 ```powershell
 curl.exe http://localhost:8000/health
@@ -195,13 +282,32 @@ Expected:
 }
 ```
 
-Then:
+If the API was restarted before the model was registered, it may report:
+
+```json
+{
+  "status": "degraded",
+  "model_status": "unavailable"
+}
+```
+
+In that case:
+
+1. Run `python -m src.mlflow_tracking`
+2. Restart the API again
+3. Check `/health`
+
+---
+
+# 11. Check the Loaded Model
+
+Run:
 
 ```powershell
 curl.exe http://localhost:8000/model-info
 ```
 
-Example:
+The response should contain information similar to:
 
 ```json
 {
@@ -212,156 +318,63 @@ Example:
 }
 ```
 
-> The MLflow Registry is runtime state and is not stored in Git or DVC. Therefore, a fresh MLflow backend must be initialized from the versioned project artifacts.
+The model version number may be different depending on the MLflow Registry state.
 
 ---
 
-## MLflow Troubleshooting
+# 12. Prediction API
 
-If `/health` reports:
-
-```json
-{
-  "status": "degraded",
-  "model_status": "unavailable"
-}
-```
-
-first initialize or refresh the model registration:
-
-```powershell
-python -m src.mlflow_tracking
-```
-
-Then verify:
-
-```powershell
-curl.exe http://localhost:8000/health
-curl.exe http://localhost:8000/model-info
-```
-
-### Stale or invalid MLflow model version
-
-If `/predict` returns an error similar to:
+### Endpoint
 
 ```text
-RESOURCE_DOES_NOT_EXIST:
-Run with id=<run_id> not found
+POST /predict
 ```
 
-the MLflow Registry may contain a model version whose artifact points to a run that is no longer available in the current MLflow backend.
+### Required input
 
-This can happen when using a fresh or reset MLflow backend together with previously persisted registry metadata.
-
-Re-register the final model:
-
-```powershell
-python -m src.mlflow_tracking
-```
-
-Then verify the newly registered model:
-
-```powershell
-curl.exe http://localhost:8000/model-info
-```
-
-After registration, retry the prediction request.
-
-> The source model and preprocessing artifacts are preserved through DVC. Re-running `src.mlflow_tracking` recreates the MLflow runtime registration from those versioned artifacts.
-
----
-
-## Running the API Locally
-
-The API can also be started directly from the Python environment for development.
-
-Make sure PostgreSQL and MLflow are running first:
-
-```powershell
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Open:
+The prediction endpoint expects:
 
 ```text
-http://localhost:8000/docs
+order_purchase_timestamp
+customer_zip_code_prefix
+customer_state
+item_count
+total_price
+total_freight
+unique_products
+unique_sellers
+payment_total
+payment_count
 ```
 
-Docker Compose is recommended when running the complete application because the API depends on the project services.
-
----
-
-## API Endpoints
-
-| Method | Route            | Description                                           |
-| ------ | ---------------- | ----------------------------------------------------- |
-| GET    | `/health`        | Health check                                          |
-| GET    | `/model-info`    | Returns information about the loaded registered model |
-| POST   | `/predict`       | Predicts whether an order will be delivered late      |
-| POST   | `/predict/batch` | Performs batch predictions                            |
-| GET    | `/metrics`       | Returns application metrics                           |
-| GET    | `/monitoring`    | Returns monitoring information                        |
-
-### Prediction Request
-
-The `/predict` endpoint accepts an order feature payload matching the production inference schema.
-
-The current request schema contains:
-
-```json
-{
-  "order_purchase_timestamp": "2018-01-01 10:00:00",
-  "customer_zip_code_prefix": 14409,
-  "customer_state": "SP",
-  "item_count": 1,
-  "total_price": 100.0,
-  "total_freight": 20.0,
-  "unique_products": 1,
-  "unique_sellers": 1,
-  "payment_total": 120.0,
-  "payment_count": 1
-}
-```
-
-The exact validation rules are defined by the FastAPI request schema in:
-
-```text
-app/main.py
-```
-
-### Example PowerShell Request
-
-PowerShell users can send a prediction request with:
+Example:
 
 ```powershell
 Invoke-RestMethod `
   -Uri "http://localhost:8000/predict" `
   -Method POST `
   -ContentType "application/json" `
-  -Body '{"order_purchase_timestamp":"2018-01-01 10:00:00","customer_zip_code_prefix":14409,"customer_state":"SP","item_count":1,"total_price":100.0,"total_freight":20.0,"unique_products":1,"unique_sellers":1,"payment_total":120.0,"payment_count":1}'
+  -Body '{
+    "order_purchase_timestamp": "2018-01-01 10:00:00",
+    "customer_zip_code_prefix": 14409,
+    "customer_state": "SP",
+    "item_count": 1,
+    "total_price": 100.0,
+    "total_freight": 20.0,
+    "unique_products": 1,
+    "unique_sellers": 1,
+    "payment_total": 120.0,
+    "payment_count": 1
+  }'
 ```
 
-A successful prediction returns the predicted class, probability, and model version used by the inference service.
+The response contains the prediction, probability, and model version.
 
 ---
 
-## Machine Learning Workflow
+# 13. ML Development Workflow
 
-The ML development process is implemented in six notebooks:
-
-```text
-01_read_join
-      ↓
-02_create_labels
-      ↓
-03_split_data
-      ↓
-04_eda
-      ↓
-05_feature_engineering
-      ↓
-06_train_evaluate
-```
+The ML development process is implemented through six notebooks.
 
 ### Notebook 1 — Read and Join
 
@@ -369,256 +382,279 @@ Loads the Olist tables and creates the main ML dataset.
 
 ### Notebook 2 — Create Labels
 
-Creates the target variable indicating whether an order was delivered late.
+Creates the late-delivery target using the actual delivery date and estimated delivery date.
+
+Orders without the required delivery information are excluded.
 
 ### Notebook 3 — Train / Validation / Test Split
 
-Creates time-based training, validation, and test datasets.
+Uses a time-based split to avoid using future information when training the model.
 
 ### Notebook 4 — EDA
 
-Analyzes:
+Explores:
 
-* Target distribution
-* Missing values
-* Feature distributions
-* Late-delivery patterns
-* Potential leakage
-* Feature selection
+* target imbalance
+* missing values
+* categorical variables
+* delivery patterns
+* temporal patterns
+* potential leakage
+* feature selection
 
 ### Notebook 5 — Feature Engineering
 
-Handles:
+Builds the model features and preprocessing pipeline.
 
-* Missing values
-* Categorical encoding
-* Feature transformation
-* Leakage prevention
+The final processed feature set contains 54 features after removing identifiers and leakage-prone columns.
 
-Preprocessing is fitted only on the training data and then applied to validation and test data.
+The fitted preprocessing object is saved as:
+
+```text
+artifacts/preprocessor.joblib
+```
 
 ### Notebook 6 — Train and Evaluate
 
-Trains and evaluates the Random Forest model and selects the final prediction threshold.
+Trains and evaluates the final model.
+
+The final trained model is saved as:
+
+```text
+artifacts/final_model.joblib
+```
+
+Evaluation results are saved as:
+
+```text
+artifacts/final_results.csv
+```
 
 ---
 
-## Model
+# 14. Final Model
 
-The production model is a Random Forest classifier.
+The final production model is a Random Forest classifier.
 
-The final model and preprocessing artifacts are versioned with DVC.
+The model uses a probability threshold selected during validation for the late-delivery classification task.
 
-MLflow is used to track experiments and manage the registered production model.
+The final model and preprocessing objects are saved and reused during inference.
 
-The API loads the configured model from the MLflow Model Registry rather than retraining during inference.
+**The production inference pipeline does not retrain the model.**
 
-Registered model:
-
-```text
-olist-delivery-random-forest
-```
-
-Production serving alias:
+It loads:
 
 ```text
-champion
+preprocessor.joblib
 ```
 
-The model version is exposed through the `/model-info` endpoint and used by the inference service.
+and the registered MLflow model.
+
+This ensures that training and inference use the same preprocessing workflow.
 
 ---
 
-## Data Validation
+# 15. Data Validation
 
-Great Expectations is used to validate data quality before the data enters the ML workflow.
+Great Expectations is used to validate data quality before it is used by the pipeline.
 
-Configuration is stored under:
+The validation process checks expected properties of the input data and helps detect invalid or unexpected data before model processing.
 
-```text
-great_expectations/
-```
-
-Data validation helps detect invalid or unexpected data before it reaches downstream ML processing.
+This provides an additional protection layer between raw data and model inference.
 
 ---
 
-## DVC
+# 16. DVC
 
-DVC is used to version large datasets and generated ML artifacts that should not be stored directly in Git.
+DVC is used to version large datasets and ML artifacts without storing them directly in Git.
 
 Tracked artifacts include:
 
 ```text
-artifacts/
-├── ml_table.csv
-├── labeled_table.csv
-├── train.csv
-├── validation.csv
-├── test.csv
-├── preprocessor.joblib
-├── feature_names.csv
-├── final_model.joblib
-└── final_results.csv
+artifacts/feature_names.csv
+artifacts/final_model.joblib
+artifacts/final_results.csv
+artifacts/labeled_table.csv
+artifacts/ml_table.csv
+artifacts/preprocessor.joblib
+artifacts/test.csv
+artifacts/train.csv
+artifacts/validation.csv
 ```
 
-To check the DVC state:
+Check DVC status:
 
 ```powershell
 dvc status
 ```
 
-To pull the tracked data and artifacts:
+Expected:
+
+```text
+Data and pipelines are up to date.
+```
+
+Download artifacts:
 
 ```powershell
 dvc pull
 ```
 
-The project uses DAGsHub as the configured DVC remote.
+---
+
+# 17. MLflow
+
+MLflow is used for:
+
+* experiment tracking
+* parameters
+* metrics
+* artifacts
+* model registration
+* model versioning
+* model aliases
+* model metadata
+
+The production-serving alias is:
+
+```text
+champion
+```
+
+The API loads the registered model through MLflow rather than directly loading an arbitrary model file.
+
+This allows the served model version to be controlled through the registry.
 
 ---
 
-## MLflow
+# 18. Testing
 
-MLflow provides:
+The project includes unit and integration tests.
 
-* Experiment tracking
-* Parameter and metric logging
-* Model artifact tracking
-* Model Registry
-* Model versioning
-* Model aliases
-* Model-version metadata
-
-The registered model is:
-
-```text
-olist-delivery-random-forest
-```
-
-The production model is served using the configured MLflow model alias.
-
-MLflow UI:
-
-```text
-http://localhost:5000
-```
-
-The registration workflow is implemented in:
-
-```text
-src/mlflow_tracking.py
-```
-
----
-
-## Testing
-
-Run the complete test suite:
+Run all tests with:
 
 ```powershell
-pytest
+pytest -q
 ```
 
-For more detailed output:
+The project currently contains 36 passing tests.
 
-```powershell
-pytest -v
-```
+The tests cover areas including:
 
-The test suite covers the main data, feature, model, and API functionality.
-
-The project test suite was verified with:
-
-```text
-36 passed
-```
+* preprocessing
+* feature handling
+* inference
+* API behavior
+* validation
+* configuration
+* model-related functionality
 
 ---
 
-## Docker
+# 19. API Endpoints
 
-Build and start the complete application:
+### Health
+
+```text
+GET /health
+```
+
+Checks API and model availability.
+
+### Model Information
+
+```text
+GET /model-info
+```
+
+Returns:
+
+* registered model name
+* model version
+* model alias
+* serving stage
+
+### Prediction
+
+```text
+POST /predict
+```
+
+Returns a late-delivery prediction and probability.
+
+---
+
+# 20. Docker
+
+The project uses Docker Compose to run the main infrastructure.
+
+Start:
 
 ```powershell
 docker compose up --build -d
 ```
 
-Check running containers:
-
-```powershell
-docker compose ps
-```
-
-View logs:
-
-```powershell
-docker compose logs
-```
-
-Follow logs:
-
-```powershell
-docker compose logs -f
-```
-
-Stop the application:
+Stop:
 
 ```powershell
 docker compose down
 ```
 
----
+View logs:
 
-## Monitoring and Logging
-
-The application includes logging and prediction monitoring.
-
-Available monitoring endpoints:
-
-```text
-GET /metrics
-GET /monitoring
+```powershell
+docker compose logs api
 ```
 
-Prediction and application logs are used to support production monitoring and troubleshooting.
+View all service logs:
 
-The monitoring components are implemented in the application source code and expose operational information through the API.
-
----
-
-## CI/CD
-
-GitHub Actions automatically runs the project's quality and testing checks.
-
-The workflow is located at:
-
-```text
-.github/workflows/
+```powershell
+docker compose logs
 ```
 
-The CI pipeline includes:
+Restart the API:
 
-1. Environment setup
-2. Dependency installation
-3. Code quality checks
-4. Formatting checks
-5. Automated tests
-6. Docker build validation
+```powershell
+docker compose restart api
+```
 
 ---
 
-## Pre-commit
+# 21. Monitoring and Logging
 
-The project uses pre-commit hooks for local code-quality checks.
+The API includes application logging and prediction logging.
 
-Install the hooks:
+Prediction-related information is recorded to support monitoring and troubleshooting.
+
+Logs can be inspected using:
+
+```powershell
+docker compose logs api
+```
+
+---
+
+# 22. CI/CD
+
+GitHub Actions is configured to automate project checks.
+
+The CI workflow includes automated testing and Docker build validation.
+
+The purpose is to catch problems before changes are merged into the repository.
+
+---
+
+# 23. Pre-commit
+
+Pre-commit hooks are configured for code-quality checks.
+
+Install:
 
 ```powershell
 pre-commit install
 ```
 
-Run them manually:
+Run manually:
 
 ```powershell
 pre-commit run --all-files
@@ -626,51 +662,214 @@ pre-commit run --all-files
 
 ---
 
-## Reproducibility
+# 24. Reproducibility
 
-The project uses:
+To reproduce the project from a fresh machine:
 
-* **Git** — source code versioning
-* **DVC** — dataset and ML artifact versioning
-* **MLflow** — experiment tracking and model registry
-* **Docker** — reproducible application services
-* **Great Expectations** — data validation
-* **Pytest** — automated testing
-* **GitHub Actions** — CI/CD
+```powershell
+git clone https://github.com/DanaAssad315/olist-mlops.git
+cd olist-mlops
 
-A new environment can reproduce the project by:
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 
-1. Cloning the repository.
-2. Installing the required dependencies.
-3. Configuring local DVC credentials.
-4. Running `dvc pull`.
-5. Starting the Docker Compose services.
-6. Initializing the MLflow Model Registry with:
+pip install -r requirements.txt
 
-   ```powershell
-   python -m src.mlflow_tracking
-   ```
-7. Verifying `/health` and `/model-info`.
-8. Sending a request to `/predict`.
+dvc pull
 
-The source code and ML artifacts are versioned through Git and DVC. MLflow Registry state is initialized in the target environment from the versioned model artifacts.
+docker compose up --build -d
+```
+
+Then initialize the MLflow Registry:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+Restart the API so it loads the registered model:
+
+```powershell
+docker compose restart api
+```
+
+Verify:
+
+```powershell
+curl.exe http://localhost:8000/health
+```
+
+Then:
+
+```powershell
+curl.exe http://localhost:8000/model-info
+```
+
+Finally, send a request to:
+
+```text
+POST /predict
+```
 
 ---
 
-## Stop the Application
+# 25. Troubleshooting
+
+## API says model is unavailable
+
+Check:
 
 ```powershell
-docker compose down
+docker compose logs api --tail=100
 ```
 
-To start it again later:
+Make sure MLflow is running:
 
 ```powershell
-docker compose up -d
+docker compose ps
+```
+
+Then initialize the registry:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+Restart the API:
+
+```powershell
+docker compose restart api
 ```
 
 ---
 
-## License
+## MLflow says the registered model does not exist
 
-For educational use as part of the Qafza MLOps training program.
+Example:
+
+```text
+RESOURCE_DOES_NOT_EXIST:
+Registered Model with name=olist-delivery-random-forest not found
+```
+
+Initialize the registry:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+Then restart the API:
+
+```powershell
+docker compose restart api
+```
+
+---
+
+## Prediction refers to an old or missing MLflow Run
+
+Example:
+
+```text
+RESOURCE_DOES_NOT_EXIST:
+Run with id=... not found
+```
+
+This can happen when the API process was started before the current MLflow model version was registered.
+
+Run:
+
+```powershell
+python -m src.mlflow_tracking
+```
+
+Then:
+
+```powershell
+docker compose restart api
+```
+
+Then verify:
+
+```powershell
+curl.exe http://localhost:8000/health
+```
+
+and:
+
+```powershell
+curl.exe http://localhost:8000/model-info
+```
+
+Do not repeatedly run the MLflow registration command unless a new model version is intentionally required, because each registration can create a new model version.
+
+---
+
+## DVC pull fails
+
+Make sure DVC is installed:
+
+```powershell
+dvc --version
+```
+
+Make sure the machine has valid credentials for the configured DAGsHub DVC remote.
+
+Then retry:
+
+```powershell
+dvc pull
+```
+
+Credentials must remain local and must not be committed to Git.
+
+---
+
+# 26. Expected End-to-End Flow
+
+The intended production-oriented workflow is:
+
+```text
+Olist Data
+    ↓
+PostgreSQL
+    ↓
+Data Validation
+    ↓
+Feature Engineering
+    ↓
+ML Training
+    ↓
+Model Evaluation
+    ↓
+DVC Versioning
+    ↓
+MLflow Tracking
+    ↓
+MLflow Model Registry
+    ↓
+Champion Model
+    ↓
+FastAPI
+    ↓
+Docker
+    ↓
+Prediction + Monitoring
+```
+
+---
+
+# 27. Project Goal
+
+This project demonstrates an end-to-end MLOps workflow rather than only a machine-learning model.
+
+The focus is on making the model:
+
+* reproducible
+* versioned
+* validated
+* testable
+* deployable
+* observable
+* accessible through an API
+* manageable through a model registry
+* reproducible on a clean environment
